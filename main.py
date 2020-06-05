@@ -2,11 +2,10 @@ import logging
 import os
 import sys
 from logging.handlers import RotatingFileHandler
-
 import requests
 import telegram
 from dotenv import load_dotenv
-
+import time
 load_dotenv()
 
 logger = logging.getLogger(__name__)
@@ -22,14 +21,15 @@ def get_checks(headers):
 def get_checks_long_polling(header, params):
     url = 'https://dvmn.org/api/long_polling/'
     response = requests.get(url, headers=header, params=params)
-
     response.raise_for_status
     return response
 
 
+
 def main():
     logger.setLevel(logging.INFO)
-    file_handler = RotatingFileHandler("simple.log", maxBytes=2000, backupCount=2)
+    #logger.setLevel(logging.ERROR)
+    file_handler = RotatingFileHandler("simple.txt", maxBytes=2000, backupCount=2)
     f_format = logging.Formatter('%(asctime)s - %(name)s -  %(lineno)d - %(levelname)s - %(message)s')
     file_handler.setFormatter(f_format)
     console_handler = logging.StreamHandler(sys.stdout)
@@ -42,15 +42,20 @@ def main():
     header = {'Authorization': TOKEN}
     params = {'timestamp': ''}
 
+
     while True:
         try:
-            logger.info('запуск программы')
-            check = get_checks_long_polling(header, params).json()
-            logger.info(f'получен ответ от сайта {check} ')
+            logger.info('отправляем запрос сайту')
+            #check = get_checks_long_polling(header, params).json()
+            check = get_checks(header).json()
+
+            logger.info(f'проверяем ответ сайта')
             if check['status'] == 'timeout':
+                logger.info(f'получен ответ: status = timeout ')
                 timestamp = check['timestamp_to_request']
                 params = {'timestamp': timestamp}
             elif check['status'] == 'found':
+                logger.info(f'получен ответ: status = found ')
                 timestamp = check['new_attempts'][0]['timestamp']
                 params = {'timestamp': timestamp}
                 name_lesson = check['new_attempts'][0]['lesson_title']
@@ -61,17 +66,21 @@ def main():
                 else:
                     text = f'У вас проверили работу "{name_lesson}" Преподавателю все понравилось, ' \
                            f'можете приступать к следующему уроку.'
-                bot = telegram.Bot(token=TEL_TOKEN)
                 logger.info('подключение к telegram-боту')
-                bot.send_message(chat_id=283654263, text=text, parse_mode=telegram.ParseMode.HTML)
+                bot = telegram.Bot(token=TEL_TOKEN)
                 logger.info('отправка сообщения telegram-боту')
+                bot.send_message(chat_id=283654263, text=text, parse_mode=telegram.ParseMode.HTML)
 
         except requests.exceptions.ReadTimeout:
-            logger.ERROR('increase response time')
+            logger.error('increase response time')
+            time.sleep(90)
+
         except requests.exceptions.ConnectionError:
-            logger.ERROR('noy internet')
-        except Exception:
-            logger.ERROR('непонятная ошибка')
+            logger.error('no internet or wrong url')
+            time.sleep(90)
+        except Exception as err:
+            logger.error(f'неизвестная ошибка: {err}')
+            return False
 
 
 if __name__ == '__main__':
