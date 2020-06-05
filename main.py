@@ -42,7 +42,7 @@ def createParser():
     parser = argparse.ArgumentParser()
     parser.add_argument('-d', '--devman', default=os.getenv('Authorization'))
     parser.add_argument('-t', '--telegram', default=os.getenv('TELEGRAM_TOKEN'))
-    parser.add_argument('-c', '--chat', default=os.getenv('CHAT_ID'))
+    parser.add_argument('-c', '--chat', default=os.getenv('TG_CHAT_ID'))
     return parser
 
 def main():
@@ -61,7 +61,7 @@ def main():
 
     TELEGRAM_TOKEN = namespace.telegram
     DEWMAN_TOKEN = namespace.devman
-    CHAT_ID = namespace.chat
+    TG_CHAT_ID = namespace.chat
     header = {'Authorization': DEWMAN_TOKEN}
     params = {'timestamp': ''}
 
@@ -93,7 +93,7 @@ def main():
                 logger.info('Подключение к telegram-боту')
                 bot = telegram.Bot(token=TELEGRAM_TOKEN)
                 logger.info('Отправка сообщения telegram-боту')
-                bot.send_message(chat_id=CHAT_ID, text=text, parse_mode=telegram.ParseMode.HTML)
+                bot.send_message(chat_id=TG_CHAT_ID, text=text, parse_mode=telegram.ParseMode.HTML)
 
         except requests.exceptions.ReadTimeout:
             logger.error('Increase response time')
