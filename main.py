@@ -13,8 +13,13 @@ logger = logging.getLogger(__name__)
 
 def get_checks(headers):
     url = 'https://dvmn.org/api/user_reviews/'
+    # url = 'https://api.vk.com/method/users.get?user_id=210700286&v=5.52'
     response = requests.get(url, headers=headers)
-    response.raise_for_status
+    logger.info(f'Ответ сервера: {response.status_code}')
+    response.raise_for_status()
+    json_data = response.json()
+    if 'error' in json_data:
+        raise requests.exceptions.HTTPError(json_data['error'])
     return response
 
 
@@ -22,14 +27,14 @@ def get_checks_long_polling(header, params):
     url = 'https://dvmn.org/api/long_polling/'
     response = requests.get(url, headers=header, params=params)
     response.raise_for_status
+
     return response
 
 
 
 def main():
-    logger.setLevel(logging.INFO)
-    #logger.setLevel(logging.ERROR)
-    file_handler = RotatingFileHandler("simple.txt", maxBytes=2000, backupCount=2)
+    logger.setLevel(logging.DEBUG)
+    file_handler = RotatingFileHandler("simple.txt", maxBytes=6000, backupCount=2)
     f_format = logging.Formatter('%(asctime)s - %(name)s -  %(lineno)d - %(levelname)s - %(message)s')
     file_handler.setFormatter(f_format)
     console_handler = logging.StreamHandler(sys.stdout)
@@ -45,17 +50,18 @@ def main():
 
     while True:
         try:
-            logger.info('отправляем запрос сайту')
+            logger.info('________Отправляем запрос сайту_________')
             #check = get_checks_long_polling(header, params).json()
             check = get_checks(header).json()
 
-            logger.info(f'проверяем ответ сайта')
+            logger.info(f'{check.raise_for_status()}')
+            logger.info(f'Проверяем ответ сайта')
             if check['status'] == 'timeout':
                 logger.info(f'получен ответ: status = timeout ')
                 timestamp = check['timestamp_to_request']
                 params = {'timestamp': timestamp}
             elif check['status'] == 'found':
-                logger.info(f'получен ответ: status = found ')
+                logger.info(f'Получен ответ: status = found ')
                 timestamp = check['new_attempts'][0]['timestamp']
                 params = {'timestamp': timestamp}
                 name_lesson = check['new_attempts'][0]['lesson_title']
@@ -66,20 +72,20 @@ def main():
                 else:
                     text = f'У вас проверили работу "{name_lesson}" Преподавателю все понравилось, ' \
                            f'можете приступать к следующему уроку.'
-                logger.info('подключение к telegram-боту')
+                logger.info('Подключение к telegram-боту')
                 bot = telegram.Bot(token=TEL_TOKEN)
-                logger.info('отправка сообщения telegram-боту')
+                logger.info('Отправка сообщения telegram-боту')
                 bot.send_message(chat_id=283654263, text=text, parse_mode=telegram.ParseMode.HTML)
 
         except requests.exceptions.ReadTimeout:
-            logger.error('increase response time')
+            logger.error('Increase response time')
             time.sleep(90)
 
         except requests.exceptions.ConnectionError:
-            logger.error('no internet or wrong url')
+            logger.error('No internet or wrong url')
             time.sleep(90)
         except Exception as err:
-            logger.error(f'неизвестная ошибка: {err}')
+            logger.error(f'Ошибка: {err}')
             return False
 
 
