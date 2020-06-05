@@ -1,14 +1,17 @@
 import logging
 import os
 import sys
+import time
 from logging.handlers import RotatingFileHandler
 import requests
 import telegram
 from dotenv import load_dotenv
-import time
+import argparse
+
 load_dotenv()
 
 logger = logging.getLogger(__name__)
+
 
 
 def get_checks(headers):
@@ -26,11 +29,21 @@ def get_checks(headers):
 def get_checks_long_polling(header, params):
     url = 'https://dvmn.org/api/long_polling/'
     response = requests.get(url, headers=header, params=params)
-    response.raise_for_status
-
+    response.raise_for_status()
+    logger.info(f'Ответ сервера: {response.status_code}')
+    response.raise_for_status()
+    json_data = response.json()
+    if 'error' in json_data:
+        raise requests.exceptions.HTTPError(json_data['error'])
     return response
 
 
+def createParser():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-d', '--devman', default=os.getenv('Authorization'))
+    parser.add_argument('-t', '--telegram', default=os.getenv('TELEGRAM_TOKEN'))
+    parser.add_argument('-c', '--chat', default=os.getenv('CHAT_ID'))
+    return parser
 
 def main():
     logger.setLevel(logging.DEBUG)
@@ -42,16 +55,21 @@ def main():
     logger.addHandler(file_handler)
     logger.addHandler(console_handler)
 
-    TEL_TOKEN = os.getenv('TEL_TOKEN')
-    TOKEN = os.getenv('Authorization')
-    header = {'Authorization': TOKEN}
+    parser = createParser()
+    namespace = parser.parse_args(sys.argv[1:])
+
+
+    TELEGRAM_TOKEN = namespace.telegram
+    DEWMAN_TOKEN = namespace.devman
+    CHAT_ID = namespace.chat
+    header = {'Authorization': DEWMAN_TOKEN}
     params = {'timestamp': ''}
 
 
     while True:
         try:
             logger.info('________Отправляем запрос сайту_________')
-            #check = get_checks_long_polling(header, params).json()
+            # check = get_checks_long_polling(header, params).json()
             check = get_checks(header).json()
 
             logger.info(f'{check.raise_for_status()}')
@@ -73,9 +91,9 @@ def main():
                     text = f'У вас проверили работу "{name_lesson}" Преподавателю все понравилось, ' \
                            f'можете приступать к следующему уроку.'
                 logger.info('Подключение к telegram-боту')
-                bot = telegram.Bot(token=TEL_TOKEN)
+                bot = telegram.Bot(token=TELEGRAM_TOKEN)
                 logger.info('Отправка сообщения telegram-боту')
-                bot.send_message(chat_id=283654263, text=text, parse_mode=telegram.ParseMode.HTML)
+                bot.send_message(chat_id=CHAT_ID, text=text, parse_mode=telegram.ParseMode.HTML)
 
         except requests.exceptions.ReadTimeout:
             logger.error('Increase response time')
