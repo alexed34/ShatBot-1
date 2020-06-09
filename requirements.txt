@@ -1,16 +1,6 @@
-certifi==2020.4.5.*
-cffi==1.14.*
-chardet==3.0.*
-cryptography==2.9.*
-decorator==4.4.*
-future==0.18.*
-idna==2.*
-pycparser==2.*
 python-dotenv==0.13.*
 python-telegram-bot==12.*
 requests==2.23.*
-six==1.15.*
-tornado==6.0.*
-urllib3==1.25.*
-PySocks==1.7.*
+
+
 

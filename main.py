@@ -40,16 +40,48 @@ def createParser():
     parser.add_argument('-d', '--devman', default=os.getenv('DEVMAN_TOKEN'))
     parser.add_argument('-t', '--telegram', default=os.getenv('TELEGRAM_TOKEN'))
     parser.add_argument('-c', '--chat', default=os.getenv('TG_CHAT_ID'))
+    parser.add_argument('-f', '--file', default='simple.log')
     return parser
+
+def send_message_bot(TELEGRAM_TOKEN, TG_CHAT_ID, text):
+    logger.info('Подключение к telegram-боту')
+    bot = telegram.Bot(token=TELEGRAM_TOKEN)
+    logger.info('Отправка сообщения telegram-боту')
+    bot.send_message(chat_id=TG_CHAT_ID, text=text, parse_mode=telegram.ParseMode.HTML)
+
+def greate_log(path_file):
+    logger.setLevel(logging.DEBUG)
+    f_format = logging.Formatter('%(asctime)s - %(name)s -  %(lineno)d - %(levelname)s - %(message)s')
+    file_handler = RotatingFileHandler(path_file, maxBytes=10000, backupCount=2)
+    file_handler.setFormatter(f_format)
+    console_handler = logging.StreamHandler(sys.stdout)
+    console_handler.setFormatter(f_format)
+    logger.addHandler(file_handler)
+    logger.addHandler(console_handler)
+
+
+def check_answer_teacher(check):
+    name_lesson = check['new_attempts'][0]['lesson_title']
+    verification_results = check['new_attempts'][0]['is_negative']
+    if verification_results:
+        return f'У вас проверили работу "{name_lesson}" К сожалению, ' \
+               f'в работе нашлись ошибки.'
+    else:
+        return f'У вас проверили работу "{name_lesson}" Преподавателю все понравилось, ' \
+               f'можете приступать к следующему уроку.'
+
+
 
 
 def main():
     parser = createParser()
-    namespace = parser.parse_args(sys.argv[1:])
-
+    namespace = parser.parse_args()
     TELEGRAM_TOKEN = namespace.telegram
     DEWMAN_TOKEN = namespace.devman
     TG_CHAT_ID = namespace.chat
+
+    greate_log(namespace.file)
+
     header = {'Authorization': f'Token {DEWMAN_TOKEN}'}
     params = {'timestamp': ''}
 
@@ -64,40 +96,22 @@ def main():
                 params = {'timestamp': timestamp}
             elif check['status'] == 'found':
                 logger.info(f'Получен ответ: "status = found" работа проверенна')
-                timestamp = check['new_attempts'][0]['timestamp']
+                timestamp = check['last_attempt_timestamp']
                 params = {'timestamp': timestamp}
-                name_lesson = check['new_attempts'][0]['lesson_title']
-                verification_results = check['new_attempts'][0]['is_negative']
-                if verification_results:
-                    text = f'У вас проверили работу "{name_lesson}" К сожалению, ' \
-                           f'в работе нашлись ошибки.'
-                else:
-                    text = f'У вас проверили работу "{name_lesson}" Преподавателю все понравилось, ' \
-                           f'можете приступать к следующему уроку.'
-                logger.info('Подключение к telegram-боту')
-                bot = telegram.Bot(token=TELEGRAM_TOKEN)
-                logger.info('Отправка сообщения telegram-боту')
-                bot.send_message(chat_id=TG_CHAT_ID, text=text, parse_mode=telegram.ParseMode.HTML)
+                text = check_answer_teacher(check)
+                send_message_bot(TELEGRAM_TOKEN, TG_CHAT_ID, text)
 
         except requests.exceptions.ReadTimeout:
-            logger.error('Increase response time')
-            time.sleep(90)
+            logger.exception('Increase response time')
+
 
         except requests.exceptions.ConnectionError:
-            logger.error('No internet or wrong url')
-            time.sleep(90)
-        except Exception as err:
-            logger.error(f'Ошибка: {err}')
+            logger.exception(f'No internet or wrong url ')
+            time.sleep(5)
+        except Exception:
+            logger.exception(f'Ошибка ')
             return False
 
 
 if __name__ == '__main__':
-    logger.setLevel(logging.DEBUG)
-    f_format = logging.Formatter('%(asctime)s - %(name)s -  %(lineno)d - %(levelname)s - %(message)s')
-    file_handler = RotatingFileHandler("simple.txt", maxBytes=6000, backupCount=2)
-    file_handler.setFormatter(f_format)
-    console_handler = logging.StreamHandler(sys.stdout)
-    console_handler.setFormatter(f_format)
-    logger.addHandler(file_handler)
-    logger.addHandler(console_handler)
     main()
