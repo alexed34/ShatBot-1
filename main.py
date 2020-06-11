@@ -26,7 +26,7 @@ def get_checks(headers):
 
 def get_checks_long_polling(header, params):
     url = 'https://dvmn.org/api/long_polling/'
-    response = requests.get(url, headers=header, params=params, timeout=91)
+    response = requests.get(url, headers=header, params=params)
     logger.info(f'Ответ сервера: {response.status_code}')
     response.raise_for_status()
     json_data = response.json()
@@ -110,13 +110,7 @@ def main():
                 send_message_bot(TELEGRAM_TOKEN, TG_CHAT_ID, text)
 
         except requests.exceptions.ReadTimeout:
-            logger.exception('ReadTimeout')
-        # надеюсь я правильно понял что нужно сделать.
-        # я выставил timeout=91, если сервер не ответит за 90 сек. сработает
-        # принудительная остановка, выдаст исключение ReadTimeout и запрос
-        # будет послан заново.
-        # Для чего надо замерять время 'как быстро скрипт узнает о проверке
-        # работы на сайте' я так и не понял
+            pass
 
         except requests.exceptions.ConnectionError:
             logger.exception(f'No internet or wrong url ')

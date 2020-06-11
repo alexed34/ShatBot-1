@@ -1,7 +1,7 @@
 .env
 .idea/
 venv/
-sample.log
+simple.log
 simple.txt
 simple.txt.1
 simple.txt.2
