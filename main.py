@@ -43,6 +43,14 @@ def create_parser():
     parser.add_argument('-f', '--file', default='simple.log')
     return parser
 
+def heroku_create_parser():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-d', '--devman', default=os.environ('DEVMAN_TOKEN'))
+    parser.add_argument('-t', '--telegram', default=os.environ('TELEGRAM_TOKEN'))
+    parser.add_argument('-c', '--chat', default=os.environ('TG_CHAT_ID'))
+    parser.add_argument('-f', '--file', default='simple.log')
+    return parser
+
 
 def send_message_bot(TELEGRAM_TOKEN, TG_CHAT_ID, text):
     logger.info('Подключение к telegram-боту')
@@ -80,7 +88,8 @@ def get_checked_text(check):
 
 
 def main():
-    parser = create_parser()
+    #parser = create_parser()
+    parser = heroku_create_parser()
     namespace = parser.parse_args()
     TELEGRAM_TOKEN = namespace.telegram
     DEWMAN_TOKEN = namespace.devman
