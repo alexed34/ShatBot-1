@@ -45,9 +45,9 @@ def create_parser():
 
 def heroku_create_parser():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-d', '--devman', default=os.environ('DEVMAN_TOKEN'))
-    parser.add_argument('-t', '--telegram', default=os.environ('TELEGRAM_TOKEN'))
-    parser.add_argument('-c', '--chat', default=os.environ('TG_CHAT_ID'))
+    parser.add_argument('-d', '--devman', default=os.environ['DEVMAN_TOKEN'])
+    parser.add_argument('-t', '--telegram', default=os.environ['TELEGRAM_TOKEN'])
+    parser.add_argument('-c', '--chat', default=os.environ['TG_CHAT_ID'])
     parser.add_argument('-f', '--file', default='simple.log')
     return parser
 
