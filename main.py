@@ -102,7 +102,7 @@ def main():
 
     while True:
         try:
-            logger.info('________Отправляем запрос сайту_________')
+            logger.info('________Отправляем запрос сайту Heroku_________')
             check = get_checks_long_polling(header, params).json()
             logger.info(f'Проверяем json ')
             if check['status'] == 'timeout':
