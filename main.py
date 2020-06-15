@@ -62,6 +62,21 @@ def send_message_bot(TELEGRAM_TOKEN, TG_CHAT_ID, text):
         text=text
     )
 
+def telegram_logger_bot(TELEGRAM_TOKEN, TG_CHAT_ID, text):
+
+    bot = telegram.Bot(token=TELEGRAM_TOKEN)
+    bot.send_message(
+        chat_id=TG_CHAT_ID,
+        parse_mode=telegram.ParseMode.HTML,
+        text='Bot упал с ошибкой'
+    )
+    bot.send_message(
+        chat_id=TG_CHAT_ID,
+        parse_mode=telegram.ParseMode.HTML,
+        text=text
+    )
+
+
 
 def create_log(file_path):
     logger.setLevel(logging.DEBUG)
@@ -100,6 +115,9 @@ def main():
     header = {'Authorization': f'Token {DEWMAN_TOKEN}'}
     params = {'timestamp': ''}
 
+    text = 'Bot запущен'
+    send_message_bot(TELEGRAM_TOKEN, TG_CHAT_ID, text)
+
     while True:
         try:
             logger.info('________Отправляем запрос сайту Heroku_________')
@@ -119,8 +137,9 @@ def main():
                 send_message_bot(TELEGRAM_TOKEN, TG_CHAT_ID, text)
 
         except requests.exceptions.ReadTimeout:
-            text = logger.exception('Bot упал с ошибкой', exc_info=False)
-            #send_message_bot(TELEGRAM_TOKEN, TG_CHAT_ID, text)
+            logger.exception('ReadTimeout')
+
+            telegram_logger_bot(TELEGRAM_TOKEN, TG_CHAT_ID, logger.exception('ReadTimeout'))
             time.sleep(5)
             pass
 
