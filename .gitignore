@@ -6,3 +6,4 @@ simple.txt
 simple.txt.1
 simple.txt.2
 /log.conf
+ __pycache__/

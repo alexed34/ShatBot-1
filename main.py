@@ -26,7 +26,7 @@ def get_checks(headers):
 
 def get_checks_long_polling(header, params):
     url = 'https://dvmn.org/api/long_polling/'
-    response = requests.get(url, headers=header, params=params)
+    response = requests.get(url, headers=header, params=params, timeout=2)
     logger.info(f'Ответ сервера: {response.status_code}')
     response.raise_for_status()
     json_data = response.json()
@@ -119,6 +119,9 @@ def main():
                 send_message_bot(TELEGRAM_TOKEN, TG_CHAT_ID, text)
 
         except requests.exceptions.ReadTimeout:
+            text = logger.exception('Bot упал с ошибкой', exc_info=False)
+            #send_message_bot(TELEGRAM_TOKEN, TG_CHAT_ID, text)
+            time.sleep(5)
             pass
 
         except requests.exceptions.ConnectionError:
