@@ -87,14 +87,6 @@ def main():
     header = {'Authorization': f'Token {DEWMAN_TOKEN}'}
     params = {'timestamp': ''}
 
-    # def send_message_bot(TELEGRAM_TOKEN, TG_CHAT_ID, text):
-    #     my_logger.info('Подключение к telegram-боту')
-    #     bot = telegram.Bot(token=TELEGRAM_TOKEN)
-    #     my_logger.info('Отправка сообщения telegram-боту')
-    #     bot.send_message(
-    #         chat_id=TG_CHAT_ID,
-    #         text=text
-    #     )
 
     bot = telegram.Bot(token=TELEGRAM_TOKEN)
 
