@@ -10,13 +10,13 @@ import telegram
 from dotenv import load_dotenv
 
 load_dotenv()
-loggert_my = logging.getLogger('логер отладки')
+my_logger = logging.getLogger('логер отладки')
 
 
 def get_checks(headers):
     url = 'https://dvmn.org/api/user_reviews/'
     response = requests.get(url, headers=headers)
-    loggert_my.info(f'Ответ сервера: {response.status_code}')
+    my_logger.info(f'Ответ сервера: {response.status_code}')
     response.raise_for_status()
     json_data = response.json()
     if 'error' in json_data:
@@ -27,7 +27,7 @@ def get_checks(headers):
 def get_checks_long_polling(header, params):
     url = 'https://dvmn.org/api/long_polling/'
     response = requests.get(url, headers=header, params=params)
-    loggert_my.info(f'Ответ сервера: {response.status_code}')
+    my_logger.info(f'Ответ сервера: {response.status_code}')
     response.raise_for_status()
     json_data = response.json()
     if 'error' in json_data:
@@ -35,7 +35,7 @@ def get_checks_long_polling(header, params):
     return response
 
 
-def heroku_create_parser():
+def create_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument('-d', '--devman', default=os.environ['DEVMAN_TOKEN'])
     parser.add_argument('-t', '--telegram',
@@ -46,9 +46,7 @@ def heroku_create_parser():
 
 
 def send_message_bot(TELEGRAM_TOKEN, TG_CHAT_ID, text):
-    loggert_my.info('Подключение к telegram-боту')
     bot = telegram.Bot(token=TELEGRAM_TOKEN)
-    loggert_my.info('Отправка сообщения telegram-боту')
     bot.send_message(
         chat_id=TG_CHAT_ID,
         text=text
@@ -56,15 +54,15 @@ def send_message_bot(TELEGRAM_TOKEN, TG_CHAT_ID, text):
 
 
 def create_log(file_path):
-    loggert_my.setLevel(logging.DEBUG)
+    my_logger.setLevel(logging.DEBUG)
     f_format = logging.Formatter(
         '%(asctime)s - %(name)s -  %(lineno)d - %(levelname)s - %(message)s')
     file_handler = RotatingFileHandler(file_path, maxBytes=10000, backupCount=2)
     file_handler.setFormatter(f_format)
     console_handler = logging.StreamHandler(sys.stdout)
     console_handler.setFormatter(f_format)
-    loggert_my.addHandler(file_handler)
-    loggert_my.addHandler(console_handler)
+    my_logger.addHandler(file_handler)
+    my_logger.addHandler(console_handler)
 
 
 def get_checked_text(check):
@@ -80,7 +78,7 @@ def get_checked_text(check):
 
 
 def main():
-    parser = heroku_create_parser()
+    parser = create_parser()
     namespace = parser.parse_args()
     TELEGRAM_TOKEN = namespace.telegram
     DEWMAN_TOKEN = namespace.devman
@@ -89,12 +87,33 @@ def main():
     header = {'Authorization': f'Token {DEWMAN_TOKEN}'}
     params = {'timestamp': ''}
 
-    bot_log = telegram.Bot(token=TELEGRAM_TOKEN)
+    # def send_message_bot(TELEGRAM_TOKEN, TG_CHAT_ID, text):
+    #     my_logger.info('Подключение к telegram-боту')
+    #     bot = telegram.Bot(token=TELEGRAM_TOKEN)
+    #     my_logger.info('Отправка сообщения telegram-боту')
+    #     bot.send_message(
+    #         chat_id=TG_CHAT_ID,
+    #         text=text
+    #     )
+
+    bot = telegram.Bot(token=TELEGRAM_TOKEN)
 
     class MyLogsHandler(logging.Handler):
         def emit(self, record):
             log_entry = self.format(record)
-            bot_log.send_message(chat_id=TG_CHAT_ID, text=log_entry)
+            # для проверяющего: devman почему то перестал отвечать текст ошибки
+            # превышает 4096, это превышает лимит telegrama , поэтому пришлось
+            # так разбить
+            if len(log_entry) < 4096:
+                bot.send_message(chat_id=TG_CHAT_ID, text=log_entry)
+            else:
+                num = len(log_entry) // 4096 + 1
+                start = 0
+                finish = 4096
+                for i in range(num):
+                    text = log_entry[start:finish]
+                    bot.send_message(chat_id=TG_CHAT_ID, text=text)
+                    start, finish = finish, finish + 4096
 
     logger = logging.getLogger('Bot_loger')
     logger.setLevel(logging.WARNING)
@@ -103,16 +122,16 @@ def main():
 
     while True:
         try:
-            loggert_my.info('________Отправляем запрос сайту Heroku_________')
+            my_logger.info('________Отправляем запрос сайту devman_________')
             check = get_checks_long_polling(header, params).json()
-            loggert_my.info(f'Проверяем json ')
+            my_logger.info(f'Проверяем json ')
             if check['status'] == 'timeout':
-                loggert_my.info(
+                my_logger.info(
                     f'получен ответ: "status = timeout" проверенных работ нет')
                 timestamp = check['timestamp_to_request']
                 params = {'timestamp': timestamp}
             elif check['status'] == 'found':
-                loggert_my.info(
+                my_logger.info(
                     f'Получен ответ: "status = found" работа проверенна{check}')
                 timestamp = check['last_attempt_timestamp']
                 params = {'timestamp': timestamp}
@@ -124,12 +143,12 @@ def main():
 
         except requests.exceptions.ConnectionError:
             logger.exception(f'No internet or wrong url ')
-            loggert_my.exception(f'No internet or wrong url ')
-            time.sleep(5)
+            my_logger.exception(f'No internet or wrong url ')
+            time.sleep(3600)
 
         except Exception:
-            logger.exception(f'Ошибка ')
-            loggert_my.exception(f'Ошибка ')
+            logger.exception(f'Нестандартная ошибка: ')
+            my_logger.exception(f'Нестандартная ошибка: ')
             return False
 
 
